@@ -1,0 +1,613 @@
+\documentclass[compress,12pt,mp]{beamer}
+
+\usetheme{Arguelles}
+\usepackage{comment}
+\usepackage{siunitx}
+\usepackage{animate}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{layout}
+\usepackage{tikz}
+\usepackage{pgf}
+\graphicspath{ {./images/} }
+
+\title{Problem C: Dog Cannot Catch}
+\subtitle{A solution}
+\event{}
+\date{}
+\author{Team 1049 (Ming Gong, Anthony Chang, Paul Rose)}
+\institute{Bard College at Simon's Rock}
+%\coach{Amanda Landi}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+
+\Section{Introduction}
+\begin{frame}[t]{Outline}
+In this presentation, we will:
+\begin{itemize}
+\item Define the problem,
+\item Explain the assumptions,
+\item Create a model,
+\item Analyze the model,
+\item Explore limitations and future work.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Problem}
+\begin{itemize}
+    \item Make a model for Fritz's jaw movement,
+    \item Track Fritz's jaw movement in the video to estimate constants,
+    \item Model the errors in head orientation and path prediction,
+    \item Estimate the effect of the initial throw, object size, and air resistance,
+    \item Summarize the result and analyze the important factors. 
+\end{itemize}
+
+\end{frame}
+\begin{frame}{Error Sources}
+Three main factors of failures:
+    \begin{itemize}
+        \item Parabola miscalculation,
+        \item Mouth mistiming,
+        \item Tricky shape/orientation.
+    \end{itemize}
+    
+    \begin{columns}
+        \begin{column}{0.3\linewidth}
+            \centering
+        \animategraphics[loop,width=3.5cm]{10}{Animated Photos/parabolafails/parabola_fail-}{0}{37}
+        \end{column}
+        \hfill
+        \begin{column}{0.3\linewidth}
+            \centering
+            \animategraphics[loop,width=3.5cm]{10}{Animated Photos/timingfails/timing_fail-}{0}{54}
+            
+        \end{column}
+        \hfill
+        \begin{column}{0.3\linewidth}
+            \centering
+            \animategraphics[loop,width=3.5cm]{10}{Animated Photos/shapefails/shape_fail-}{0}{39}
+        \end{column}
+    \end{columns}
+\end{frame}
+\Section{Framework}
+\begin{frame}[t]{Preliminary Assumptions} % may go more along the way
+\begin{itemize}
+    \item The mouth is circular; the object is spherical. % will later deal with different shapes
+    \item The mouth and the object are rigid.
+    \item The dog moves to the correct left-right position and longitudinal orientation before the catch (2D systems).
+    \item In the catching phase, the body is stationary. % More explanation here
+    \item The dog only tracks motion with its eyes (not nose scent, etc.)
+    \item The eyes accurately track the position/velocity of the object.
+    \item The dog loses sight of the food once it opens its mouth. % Therefore, losing information on the position/velocity of the object
+    \item The dog has good sense of its mouth mechanics. % knows the time it takes to open its mouth to maximum width.
+    \item The dog makes only one catching attempt. 
+
+\end{itemize}
+\end{frame}
+\begin{frame}[t]{Model Framework}
+For the mouth to successfully catch the object,
+    $$R<r(t)\cos(\Delta \theta)-\Delta x,$$
+    \begin{columns}
+    \begin{column}{0.5\linewidth}
+    where
+    \begin{itemize}
+        \item $R$: object radius,
+        \item $r(t)$: mouth radius at time $t$,
+        \item $\Delta\theta$: orientation error,
+        \item $\Delta x$: positional error.
+    \end{itemize}
+    \end{column}
+    \begin{column}{0.5\linewidth}
+        \includegraphics[scale = 0.2]{mouth_radius_diagram}
+    \end{column}
+    \end{columns}
+\end{frame}
+\begin{frame}[t]{Coordinate System}
+% The dog jumps up to catch the object, but
+\begin{itemize}
+\item At the time of the catch, the dog's cheek is at $y=0$.  
+\item The object is thrown at position $(0, y_0)$ and velocity $(x_0', y_0')$.
+\item The mouth opening diameter ($2r$) is at the nose.
+\item The distance from nose/chin to cheek is $l=\qty{6.5}{\cm}$.
+\end{itemize}
+\begin{center}
+\includegraphics[scale = 0.12]{coordinate_diagram}
+\end{center}
+
+\end{frame}
+
+\begin{frame}[t]{Time axis}
+\begin{itemize}
+\item Three times,
+   % \item Object is thrown $t=0$,
+   % \item Starts opening mouth $t=t_a$,
+   % \item Object reaches nose/chin  $t=t_b$,
+   % \item Object reaches cheek  $t=t_c$.
+\item Need to solve the effective mouth radius $r(t_b)$.     % when the object passes the mouth opening.
+\end{itemize}
+\begin{center}
+\includegraphics[scale = 0.15]{time_axis_diagram}
+\end{center}
+
+
+\end{frame}
+
+\Section{Model}
+\begin{frame}[t]{Mouth Mechanics Model}
+\begin{itemize}
+    % To make life easier, use a linear approximation
+    \item Assumed to be a damped harmonic oscillator: 
+    \[I\theta'' + C\theta'+K\theta=\tau.\]
+    \item Convert to a force model: % by dividing each side by the moment arm
+    \[mr''+cr'+kr=F.\]
+    \item \(e^{st}\) substitution for homogeneous solution:
+    \[ms^2+cs+k=0\]
+    \[s=\frac{-c\pm\sqrt{c^2-4mk}}{2m}.\]
+    
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[t]{Mouth Mechanics Model}
+\begin{itemize}
+\item \(c^2>4mk\) for overdamped mode.
+    \[r_h(t)=Ae^{s_+t} + Be^{s_-t}.\]
+\item Particular solution: \(r_p(t)=\frac{F}{k}.\)
+
+    \item Total solution:
+    \[r(t)=\frac{F}{k} + Ae^{s_+t} + Be^{s_-t}.\]
+\item However, F(t) is actually a square bump. 
+\item Can solve this ODE with opening and closing force values.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Mouth Mechanics Model}
+\begin{itemize}
+\item Suppose the dog's input force switches from \(F_1\) to \(F_2\) at time \(T\). \(r(T)\) and \(r'(T)\) for the \(F_1\) solution can be used as initial conditions for the \(F_2\) solution.
+\[
+r(t)=\begin{cases}
+    \frac{F_1}{k}+A_1e^{S_+t}+B_1e^{s_-t} & \text{if } t_1 \leq t < t_1+T\\
+    \frac{F_2}{k}+A_2e^{S_+t}+B_2e^{s_-t} & \text{if } t \geq t_1+T.
+\end{cases}
+\]
+\begin{columns}
+    \begin{column}{0.55\linewidth}
+        \begin{figure}
+            \centering
+            \includegraphics[scale=0.8]{PLT PLOTS/F(t).pdf}
+        \end{figure}
+    \end{column}
+    \begin{column}{0.43\linewidth}
+        \item \(F_1\) initial condition: \(r(0)=0, r'(0)=0\).
+        \item Now, need to find values for the constants \(m\), \(c\), \(k\), \(F_1\), and \(F_2\).
+    \end{column}
+\hfill
+
+\end{columns}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{AI Tracker}
+    %Here I need ming to video edit some of the frames. I need ming to put in the first two gifs. 
+\end{frame}
+\begin{frame}[c]{AI Tracker}
+    \begin{figure}
+        \centering
+\includegraphics[scale = 0.17]{PLT PLOTS/stanforddogs.pdf}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[t]{AI Tracker}
+%Put the meatball video in here.
+\end{frame}
+
+\begin{frame}[c]{AI Tracker}
+    \begin{figure}
+       \centering
+        \includegraphics{PLT PLOTS/nonoverlay.pdf}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[c]{AI Tracker}
+    \begin{itemize}
+    \item Constants: $m=\qty{0.26}{\kg}, k=\SI[per-mode=symbol]{400}{\N\per\m}, c=\SI[per-mode=symbol]{21.5}{\kg\per\s}$.
+    \item Force function: $F(t)=\qty{32}{\N}\cdot H(t-t_1)-\qty{33}{\N}\cdot H(t(t_1+\qty{0.3}{\s}))$.
+    \end{itemize}
+    \begin{figure}
+        \centering
+        \includegraphics[scale = 0.8]{PLT PLOTS/overlay.pdf}
+    \end{figure}
+\end{frame}
+%\begin{frame}[t]{Mouth Mechanics Model}
+%\includegraphics[scale=0.65]
+%{mouth_mechanics_model.png}
+%\begin{itemize}
+%\item Constants: $m=\qty{0.26}{\kg}, k=\SI[per-mode=symbol]{400}{\N\per\m}, c=\SI[per-mode=symbol]{21.5}{\kg\per\s}$.
+%\item Force function: $F(t)=\qty{32}{\N}\cdot H(t-t_1)-\qty{33}{\N}\cdot H(t(t_1+\qty{0.3}{\s}))$.
+%\end{itemize}
+%\end{frame}
+%\begin{frame}[t]{Mouth Mechanics Model}
+%\begin{figure}
+%  \centering
+%  \includegraphics{rt.png}
+%\end{figure}
+
+%\end{frame}
+\begin{frame}{Timing Limit}
+    Want mouth to close when the object reaches cheek. % don't want to choke or let the object bounce off the cheek
+        \begin{columns}
+
+    \begin{column}{0.5\linewidth}
+    \begin{itemize}
+    \item $t_c=t_a+T_{chomp}$,
+    \item $t_{b}\approx t_{c}-\frac{l}{\sqrt{(x_{c}')^2+(y_{c}')^2}}$.
+    \end{itemize}
+    \end{column}
+    \begin{column}{0.5\linewidth}
+    \begin{itemize}
+    \item Let $T_{chomp}=\SI{0.45}{\s}$,
+    \item $l=\SI{6.5}{\cm}$.
+
+\end{itemize}
+\end{column}
+\end{columns}
+Assume the speeds at $t_b$ and $t_c$ are close.
+
+Faster objects are harder to catch.
+\begin{figure}
+  \centering
+  \includegraphics[scale=0.55]{PLT PLOTS/rt_details.pdf}
+\end{figure}
+\end{frame}
+
+\begin{frame}[t]{Tangent Line Approximation}
+\begin{itemize}
+\item Lack of reference, straight line approximation,
+\item Observe the current $y$ and $y'$ to decide $t_a$,
+\item Opens \(T_{chomp}=\SI{0.45}{\s}\) before it thinks the object will reach its cheek ($y=0$).
+
+%\item It will have \(t_a\) seconds to move and orient its head correctly.
+
+\item Solve for \(t_a\):
+\end{itemize}
+$$0-y=y'\cdot T_{chomp}$$  % a1 and a2 are the same here. Same opening choice
+$$-y_0-y'_0t_{a}+\frac{1}{2}gt_{a}^2=(y'_0-gt_{a})T_{chomp}$$   % let g be positive here
+$$t_{a}=\frac{(y_0'-gT_{chomp})+\sqrt{(y_0'-gT_{chomp})^2-2g(y_0+T_{chomp}y'_0)}}{g}.$$
+\end{frame}
+\begin{frame}[t]{Tangent Line Approximation}
+\begin{itemize}
+%\item Quantify how dog's misobservation of velocity and position will affect catching outcome.
+
+\item Fritz assumes the object will continue in a straight line beyond $t_a$,
+
+\item $t_{c1}$: Dog's time estimation,
+
+\item $t_{a}, t_{b2}, t_{c2}$: Actual time.
+\end{itemize}
+\begin{center}
+\includegraphics[scale = 0.11]{position_error_diagram}
+\end{center}
+\end{frame}
+
+
+\begin{frame}[t]{Positional Error}
+
+Calculate the variables of the two paths: 
+
+    Dog's perception---linear drop:
+    \begin{itemize}
+
+    \item $t_{c1}=t_{a}+T_{chomp}=$ linear drop time,
+    \item $x_{c1}'=x_0'$ (ignore air resistance for now),
+    \item$y_{c1}'=y'_{a}=y'_0-gt_{a}$.
+    \end{itemize}
+
+    Actual---parabolic drop:
+    \begin{itemize}
+    \item $t_{c2}=\frac{y'_0+\sqrt{{y'_0}^2+2gy_0}}{g}=$ parabolic drop time,
+    \item $x_{c2}'=x_0'$,
+    \item$y_{c2}'=y_0'-gt_{c2}$.
+\end{itemize}
+
+\end{frame}
+\begin{frame}[t]{Positional Error}
+
+\begin{columns}
+    \begin{column}{0.45\linewidth}
+        \begin{align*}
+            \Delta x&=x_{b2}'\Delta t\sin(\theta_1)\\
+            &\approx x_{c2}'(t_{c1}-t_{c2})\frac{y_{c1}'}{\sqrt{(x_{c1}')^2+(y_{c1}')^2}}\\
+            &=x_{0}'(t_{c1}-t_{c2})\frac{y_{a}'}{\sqrt{(x_{0}')^2+(y_{a}')^2}},
+        \end{align*}
+    \end{column}
+    \begin{column}{0.55\linewidth}
+        \includegraphics[scale = 0.14]{images/position_error_details.jpg}
+    \end{column}
+\end{columns}
+        where $\theta_1=$ perceived latitudinal angle. 
+
+\end{frame}
+
+\begin{frame}[c]{Orientation Error}
+\begin{columns} 
+\begin{column}{0.55\linewidth}
+\begin{itemize}
+\item Quantify how the dog's misestimation of head orientation affects catching outcome,
+\item Focus on latitudinal error \(\Delta\theta\),
+\item Projection of Mouth width \(r\) onto normal of trajectory gives width food has to pass through.
+
+\[r_{eff}=r\text{cos}(\Delta\theta).\]
+\end{itemize}
+\end{column}
+\hfill
+\begin{column}{0.43\linewidth}
+%\includegraphics[scale = 0.1]{Paul Roses.jpg}
+\definecolor{dgre}{HTML}{002D04}
+\begin{tikzpicture}
+    \begin{scope}[rotate=20, line width=1.5pt]
+        \draw (0,0) -- (3,0) -- (1.5,2) -- cycle;
+    \end{scope}
+    \draw (2.81907786, 2) -- (3, 2) -- (3, 1.8);
+    \draw[dgre!70, line width = 2pt, ->] (2.81907786, 1.02606043)--(0.72549864, 2.39241546);
+    \fill[red!45] (4,1.8) circle (0.3);
+    \draw[red!45, very thick, ->] (4,1.8) -- (2.25, 1.8);
+    \draw[red, line width=2pt] (4,1.8) circle (0.3);
+    \draw[blue!50, line width = 2pt, ->] (2.81907786, 1.02606043) -- (2.81907786, 2.55);
+    \draw[blue!50, line width = 1.5pt, dotted] (0.72549864, 2.39241546) -- (2.81907786, 2.39241546);
+    \draw[black, line width = 2pt, dotted] (2.81907786, 1.02606043) -- (2.81907786, 3.25);
+    \node[font=\normalsize] at (1.5, 1.538443565817166) {$\overrightarrow{r}$};
+    \node[anchor = east, font=\normalsize] at (2.81907786, 2.138030215){$\overrightarrow{r}_{\text{eff}}$};
+\end{tikzpicture}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Orientation Error}
+    \begin{itemize}
+    \item Affected by the parabola misestimation:
+    \end{itemize}
+    \begin{align*}
+        \Delta\theta &= \theta_2-\theta_1\\
+        &= \arctan\left(\frac{y_{b2}'}{x_{b2}'}\right)-\arctan\left(\frac{y_{b1}'}{x_{b1}'}\right)\\
+        &\approx \arctan\left(\frac{y_{c2}'}{x_{c2}'}\right)-\arctan\left(\frac{y_{c1}'}{x_{c1}'}\right),
+    \end{align*}
+    where 
+    
+    $\theta_1=$ latitudinal angle in dog's perception, 
+    
+    $\theta_2=$ actual latitudinal angle.
+    \hfill
+\end{frame}
+%
+\begin{comment}
+\begin{frame}[t]{Orientation Error}
+\begin{itemize}
+\item Misestimation of orientation also effects how the dog will predict the parabola
+\item Given an error in knowledge of eye orientation \(\Delta \theta\), the dog thinks the food will use the following equations to predict the trajectory once it breaks eye contact to open its mouth. 
+\[x(t)=x_0+v_xt-\frac{1}{2}g\text{sin}(\Delta\theta)t^2\]
+\[y(t)=y_0+v_yt-\frac{1}{2}g\text{cos}(\Delta\theta)t^2\]
+\item as in the previous calculation, cos\(\Delta\theta\) is close to 1 until \(\Delta\theta\) is very large, so the effect of the change in \(y(t)\) can be safely ignored. Thus, the time it takes for the object to reach the elevation of the dog's mouth \(t_z\) can be assumed to be predicted correctly.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Orientation Error}
+\begin{itemize}
+
+\item So the only significant error introduced by this miscalculation by the dog's brain is the change in \(x(t)\). 
+\item The error in predicted \(x\) position is given by:
+\[\Delta x=-\frac{1}{2}g\text{sin}(\Delta \theta)t_z^2\]
+\item As before, \(\Delta x\) has to be less than the difference between the mouth and object radii. 
+\item Suppose \(r_m-r_p=1cm\) and \(t_z=0.2s\). Solving \(0.01\text{m}=-4.9\frac{\text{m}}{\text{s}^2}*(0.2\text{s})^2*\text{sin}(\Delta \theta)\) yields \(\Delta \theta=3\)  degrees. 
+\item This is a fairly precise requirement, which means correctly estimating head orientation could be a source of considerable difficulty. 
+\end{itemize}
+\end{frame}
+\end{comment}
+
+\begin{frame}[t]{Model Summary}
+Under all errors, is the effective mouth opening big enough to catch the object?
+
+    $$R_{max}=r(t_{b2})\cos(\Delta \theta)-a_x\Delta x,$$
+    where $a_x$ is a learning factor.   % tends to go down as more experienced
+    \begin{itemize} 
+    \item Variables: $y_0, y_0', x_0', a_x$,
+    \item Analyze $R_{max}$ as a function of the variables,
+    \item Default configuration: $y_0=\SI{1.2}{\m}, y'_0=\SI[per-mode=symbol]{2}{\m\per\s}, x'_0=\SI[per-mode=symbol]{2}{\m\per\s}, a_x=0.25$,
+    \item Object is spherical, no air resistance.
+    \end{itemize}
+
+\end{frame}
+
+\Section{Analysis}
+
+\begin{frame}[t]{Initial Velocity}
+To make Fritz look bad:
+\begin{itemize}
+\item High x speed (parabola misestimation),    % assume the dog can move to the right x position at the catch, so high x-velocity won't affect mouth mechanics
+
+\item Low y speed (parabola misestimation), % there is an optimal medium y velocity
+
+\item High y speed (mouth mechanics).
+
+
+\end{itemize}
+\begin{figure}
+  \centering
+  \includegraphics[scale=0.6]{PLT PLOTS/ivef.pdf}
+\end{figure}
+\end{frame}
+
+\begin{frame}[t]{Initial Height}
+% graph with some reasonable initial height that human can throw
+\begin{itemize}
+    \item Translates to $y_0'$.   % higher throw -> faster y speed at catch -> smaller 
+    \item Graph is with a 45-degree throw angle.
+\end{itemize}
+\begin{figure}
+  \centering
+  \includegraphics[scale=0.50]{PLT PLOTS/ih.pdf}
+\end{figure}
+\end{frame}
+% Predicting a parabolic trajectory is not a straightforward task, so it is understandable that Fritz is struggling to learn.
+% Fritz can adjust position forward to account for parabola
+\begin{frame}{Experience}
+\begin{figure}
+  \centering
+  \includegraphics{PLT PLOTS/expef.pdf}
+\end{figure}
+\end{frame}
+\begin{frame}[t]{Experience}
+    % let's look more closely in the (relatively subtle) initial speed effect in the y-direction
+    Fix $x_0'$ at $\SI[per-mode=symbol]{2}{\m\per\s}$.
+    \begin{itemize}
+        \item Parabola misestimation (low y-speed), % can be much better through learning
+        \item Mouth mechanics issue (high y-speed). % can't really, physically impossible
+    \end{itemize}
+    \begin{figure}
+  \centering
+  \includegraphics{PLT PLOTS/expefypsd.pdf}
+\end{figure}
+\end{frame}
+
+
+
+\begin{frame}[t]{Air Resistance}
+
+\begin{equation*}
+    F_{drag}=\frac{1}{2}\rho A c_d v^2.
+\end{equation*}
+Solve differential equations:
+$$
+\begin{cases}
+        mx''=-cx'|x'|\\
+        my''=-mg-cy'|y'|,
+\end{cases}
+$$
+where $c=\frac{1}{2}\rho A c_d=$
+\begin{itemize}
+    \item $\SI[per-mode=symbol]{2.15e-4}{\kg\per\m}$ for meatball,
+    \item $\SI[per-mode=symbol]{5.94e-3}{\kg\per\m}$ for fried egg,
+    \item $\SI[per-mode=symbol]{0.01e-2}{\kg\per\m}$ for noodle.
+
+\end{itemize}
+% computer simulation
+% Assume dog linear perception again
+%Added another error term in the x-direction: $$x_{airerror}=(x_{c1}-x_{c2})-(t_{c1}-t_{c2})x_{a1}'$$
+
+%Error contribution of this term is minimal, around $\qty{0.5}{\cm}$.
+
+\end{frame}
+\begin{frame}[t]{Air Resistance}
+
+Beneficial!
+\begin{itemize}
+    \item $y$-axis: terminal velocity and linear approximation,
+    \item $x$-axis: slight error.
+\end{itemize}
+    \begin{figure}
+  \centering
+  \includegraphics{PLT PLOTS/ar.pdf}
+\end{figure}
+%For a high coefficient, the object tends to move in terminal velocity, which makes the dog's linear approximation more accurate. Also, he slower motion gives the dog more time to react.
+\end{frame}
+
+\begin{frame}[t]{Non-spherical Shapes}
+\begin{itemize}
+\item If the object is non-spherical, the dog must predict its rotation and twist its head.
+\item If the object is rigid, it has to be caught by the center of mass.
+\item If the object is deformable, the dog can catch the edge and hold on.
+\end{itemize}
+%\includegraphics[]{shapefails}
+\end{frame}
+\begin{frame}[t]{Critial Factors}
+Tricky throw + clumsy Fritz,
+
+\begin{itemize}
+\item Initial throw speed (especially horizontal),
+\item Object size,
+\item The dog's experience.
+%\item Both chomp timing and head positioning have to be within a certain range
+%\item Object size %Acceptable error shrinks as object becomes larger
+%\item Air resistance: easy
+%\item Strictly horizontal and vertical throws could make dog look worse
+\end{itemize}
+\begin{columns}
+    \begin{column}{0.48\textwidth}
+        \vspace{1cm}
+        \begin{figure}
+            \centering
+            \includegraphics[scale=0.45]{PLT PLOTS/ivef.pdf}
+        \end{figure}
+    \end{column}
+    \hfill
+    \begin{column}{0.48\textwidth}
+        \vspace{1cm}
+        \begin{figure}
+            \centering
+            \includegraphics[scale=0.51]{PLT PLOTS/expef.pdf}
+        \end{figure}
+    \end{column}
+\end{columns}
+\end{frame}
+\begin{comment}
+\begin{frame}[t]{Timing Error (Obsolete)}% In the timing argument, the dog should have opened its mouth too late, but instead, it opened too early, so some other error must account for that.
+Two factors: parabola misestimation and distance misestimation 
+%Assume distance misestimation can be calculated component-wise (object almost dropping vertically when it falls)
+\begin{align*}
+    y_{eye}&=\frac{A}{y}\\
+    \frac{dy_{eye}}{dy}&= Ay^{-2}\\
+    dy &= \frac{1}{Ady_{eye}}y^2\\
+    \Delta y &= a_yy^2
+\end{align*}
+$a_y$ is a constant
+%y_eye is y_theo in Ming's notes
+\begin{align*}
+    y-a_yy^2&=y_{eye}\\
+    y&=\frac{1-\sqrt{1-4a_yy_{eye}}}{2a_y}
+\end{align*}
+
+\end{frame}
+
+\begin{frame}[t]{Timing Error}
+\begin{align*}
+    t_{actual} &= \frac{\dot{y}+\sqrt{\dot{y}^2+2gy}}{g} \\   % t here means time it takes for object to fall
+    % committing to the linear falling model
+\end{align*}
+Dog starts to open its mouth when it thinks the object will fall 
+    $r(t_{actual})$ is the mouth opening radius at the catch.
+\end{frame}
+
+
+\begin{frame}[t]{Code Ideas}
+    write
+\end{frame}
+\end{comment}
+
+\begin{frame}[t]{Model Limitations}
+In the model:
+    \begin{itemize}
+        \item The dog can move to the intended $x$-position-Did not account for the body dynamics.
+        \item Position and velocity are correctly perceived when the dog can see the food.
+        \item Object is spherical, so rotation in flight wasn't modeled.
+        \item The food is rigid enough that if it hits the dog's lips, the catch will fail due to bouncing.
+    \end{itemize}
+    
+\end{frame}
+\begin{frame}[t]{Future Work}
+\begin{itemize}
+\item Simulate the dog's body and calculate how precisely force input has to be controlled,
+\item Determine what factors still cause error once the dog learns to predict parabolas correctly,
+\item Account for odd shapes by modeling rotation and the need to catch the center of mass,
+\item Model precisely how much trajectory deviation causes the object to miss the dog's mouth at different angles,
+\item Use a more realistic potential function for the mouth ODE.
+\end{itemize}
+\end{frame}
+
+\nocite{*}
+\begin{frame}[t, allowframebreaks]{Works Cited}
+\bibliographystyle{plain}
+\bibliography{ref}
+\end{frame}
+\end{document}
